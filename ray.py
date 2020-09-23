@@ -1,7 +1,7 @@
 from utils import writebmp, norm, V3, sub, dot, reflect, length, mul, sum, refract
 from sphere import Sphere
 from math import pi, tan
-from materials import mona2
+from materials import adorno2
 import random
 from light import *
 from color import *
@@ -25,6 +25,8 @@ class Raytracer(object):
         self.width = width
         self.height = height
         self.scene = []
+        self.pattern = []
+        self.autostereogram = []
         self.currentColor = BACKGROUND
         self.clear()
 
@@ -33,9 +35,13 @@ class Raytracer(object):
             [self.currentColor for x in range(self.width)]
             for y in range(self.height)
         ]
+        self.autostereogram = [
+            [self.currentColor for x in range(self.width)]
+            for y in range(self.height)
+        ]
 
     def write(self, filename='out.bmp'):
-        writebmp(filename, self.width, self.height, self.pixels)
+        writebmp(filename, self.width, self.height, self.autostereogram)
 
     def point(self, x, y, selectColor=None):
         try:
@@ -121,17 +127,36 @@ class Raytracer(object):
                 g = int((y / self.height) * 255) if y / self.height < 1 else 1
                 b = 0
                 self.pixels[y][x] = Color(r, g, b)
+
+    def makePattern(self, levels = 64):
+        self.pattern = [
+            [Color(random.randint(0, levels - 1), random.randint(0, levels - 1), random.randint(0, levels - 1)) for x in range(self.width)]
+            for y in range(self.height)
+        ]
+
+    def makeAutostereogram(self, shiftAmplitude = 0.1):
+        self.autostereogram = self.pixels
+        for r in range(self.height):
+            for c in range(self.width):
+                if c < self.width:
+                    self.autostereogram[r][c] = self.pattern[ r % self.height][c]
+                else:
+                    shift = int(self.pixels[r][c] * shiftAmplitude * self.width)
+                    self.autostereogram[r][c] = self.autostereogram[r][c - self.width + shift]
+
+
     
 
 
-r = Raytracer(1000, 1000)
+r = Raytracer(450, 800)
 r.light = Light(
     position = V3(0, 0, 20),
     intensity = 1.5
 )
 r.scene = [
-    Sphere(V3(0, 0, -10), 5, mona2),
+    Sphere(V3(0, 0, -10), 1.5, adorno2),
 ]
 r.render()
-
+r.makePattern()
+r.makeAutostereogram()
 r.write()
